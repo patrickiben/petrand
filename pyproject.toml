@@ -26,3 +26,7 @@ dev = [
 
 [project.scripts]
 petrand = "petrand.cli:main"
+
+[tool.setuptools]
+# Only the petrand folder is the package; paper/, deploy/, hardware/ and validation/ are not
+packages = ["petrand"]
