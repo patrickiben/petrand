@@ -1,5 +1,7 @@
 # PetRand
 
+[![tests](https://github.com/patrickiben/petrand/actions/workflows/tests.yml/badge.svg)](https://github.com/patrickiben/petrand/actions/workflows/tests.yml)
+
 An experimental entropy source built from a motorized cat-toy ball bouncing around a small arena, plus the tools to test whether it really produces unpredictable numbers.
 
 > **Status: research prototype.** No physical arena has been built or measured yet. Unless you start it with `--sensor camera` or `--sensor audio`, everything runs on a built-in simulator (the double-click launchers always do), and the console says so. PetRand is not certified by any laboratory. Its health tests follow the designs in NIST SP 800-90B, but the entropy credit per sample is a placeholder until the source has been assessed.
