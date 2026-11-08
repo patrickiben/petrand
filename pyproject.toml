@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "petrand"
+version = "1.7.0"
+description = "Experimental entropy source from a bouncing cat-toy ball (research prototype, not certified), with a Monte Carlo seeder and a motion game"
+readme = "README.md"
+authors = [{ name = "Patrick Iben" }]
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+]
+
+[project.optional-dependencies]
+hardware = [
+    "opencv-python>=4.5.0",
+    "sounddevice>=0.4.0",
+]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+petrand = "petrand.cli:main"

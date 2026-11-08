@@ -1,0 +1,30 @@
+[Unit]
+Description=PetRand console and REST API (bound to 127.0.0.1)
+After=network.target multi-user.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/petrand
+ExecStart=/home/pi/petrand/venv/bin/python3 -m petrand.cli serve --host 127.0.0.1 --port 8080 --sensor camera --ball-a Ball_A --color-a orange --ball-b Ball_B --color-b blue --swap-minutes 35.0 --auto-swap
+Restart=on-failure
+RestartSec=5s
+
+# Security sandboxing options
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/pi/petrand
+PrivateTmp=true
+
+# Device access for USB webcam and audio impact sensors
+DeviceAllow=/dev/video0 rwm
+DeviceAllow=/dev/snd/* rwm
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=petrand
+
+[Install]
+WantedBy=multi-user.target
