@@ -4,6 +4,8 @@ An experimental entropy source built from a motorized cat-toy ball bouncing arou
 
 > **Status: research prototype.** No physical arena has been built or measured yet. Unless you start it with `--sensor camera` or `--sensor audio`, everything runs on a built-in simulator (the double-click launchers always do), and the console says so. PetRand is not certified by any laboratory. Its health tests follow the designs in NIST SP 800-90B, but the entropy credit per sample is a placeholder until the source has been assessed.
 
+**Play the motion game in your browser:** https://patrickiben.github.io/petrand/ — it runs entirely on your device, and nothing you do is sent anywhere.
+
 ## The idea
 
 Lavarand (Silicon Graphics, US Patent 5,732,138) and Cloudflare's lava-lamp wall turned visible, messy motion into random seeds. PetRand asks the same question with a cheap self-propelled toy: a ball that rolls, hits walls and 3D-printed deflectors, and changes direction on its own. An overhead webcam tracks it, and a microphone can hear the impacts.

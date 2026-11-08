@@ -663,6 +663,7 @@ ZOOMIES_HTML = """<!DOCTYPE html>
 
 <script>
 const FORM_CARDS = __FORM_CARDS_JSON__;
+const STANDALONE = __STANDALONE__;   // true in the file copy: rounds are scored in the page
 const WORDS_256 = __WORDS_JSON__;   // the console's passphrase words (8 bits each)
 
 let currentCardIdx = 0;
@@ -1083,6 +1084,30 @@ function makeByteReader(bytes) {
   };
 }
 
+// Score a round in the page and, if it unlocks, make its seed from a SHA-256 of everything recorded
+async function scoreInBrowser(roundSamples, card, area, prefix) {
+  let result = null;
+  result = evaluateClientSide(roundSamples, card, area);
+  if (result.unlocked) {
+    const rawBuf = new Float64Array(roundSamples.flatMap(s => [s.t, s.x, s.y, s.z || 0, s.audio || 0]));
+    const h1 = new Uint8Array(await crypto.subtle.digest('SHA-256', rawBuf.buffer));
+    const h2 = new Uint8Array(await crypto.subtle.digest('SHA-256', h1));
+    const bytes = new Uint8Array([...h1, ...h2]);
+    result.seed_hex = Array.from(h1).map(b => b.toString(16).padStart(2, '0')).join('');
+    result.seed_label = `Seed #${String(h1[0] | (h1[1] << 8)).padStart(4, '0')}`;
+    const rd = makeByteReader(bytes.slice(2));
+    result.derived_rolls = {
+      uniform_0_1: ((h1[0] * 256 + h1[1]) / 65536).toFixed(8),
+      d20: rd.pick(20) + 1,
+      '6d6': [0, 1, 2, 3, 4, 5].map(() => rd.pick(6) + 1)
+    };
+    const words = [0, 1, 2, 3, 4, 5].map(() => WORDS_256[rd.pick(256)]);
+    result.toolkit = { passphrase_bundle: { passphrase: words.join('-'), pin_6_digit: rd.pin6() } };
+  }
+  result.feedback = prefix + result.feedback;
+  return result;
+}
+
 async function finalizeRound() {
   isJumping = false;
   document.getElementById('btnStartJump').textContent = 'GO! (4 s)';
@@ -1100,33 +1125,21 @@ async function finalizeRound() {
   }
 
   let result = null;
-  try {
-    const resp = await fetch('/api/v1/zoomies/evaluate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ form_id: card.id, samples: roundSamples, key_mashes: keyMashCount, area: area })
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    result = await resp.json();
-  } catch (err) {
-    result = evaluateClientSide(roundSamples, card, area);
-    if (result.unlocked) {
-      const rawBuf = new Float64Array(roundSamples.flatMap(s => [s.t, s.x, s.y, s.z || 0, s.audio || 0]));
-      const h1 = new Uint8Array(await crypto.subtle.digest('SHA-256', rawBuf.buffer));
-      const h2 = new Uint8Array(await crypto.subtle.digest('SHA-256', h1));
-      const bytes = new Uint8Array([...h1, ...h2]);
-      result.seed_hex = Array.from(h1).map(b => b.toString(16).padStart(2, '0')).join('');
-      result.seed_label = `Seed #${String(h1[0] | (h1[1] << 8)).padStart(4, '0')}`;
-      const rd = makeByteReader(bytes.slice(2));
-      result.derived_rolls = {
-        uniform_0_1: ((h1[0] * 256 + h1[1]) / 65536).toFixed(8),
-        d20: rd.pick(20) + 1,
-        '6d6': [0, 1, 2, 3, 4, 5].map(() => rd.pick(6) + 1)
-      };
-      const words = [0, 1, 2, 3, 4, 5].map(() => WORDS_256[rd.pick(256)]);
-      result.toolkit = { passphrase_bundle: { passphrase: words.join('-'), pin_6_digit: rd.pin6() } };
+  if (STANDALONE) {
+    // The page was opened as a file or from a static host: there is no PetRand server to ask
+    result = await scoreInBrowser(roundSamples, card, area, 'Scored in your browser: ');
+  } else {
+    try {
+      const resp = await fetch('/api/v1/zoomies/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form_id: card.id, samples: roundSamples, key_mashes: keyMashCount, area: area })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      result = await resp.json();
+    } catch (err) {
+      result = await scoreInBrowser(roundSamples, card, area, 'Offline, scored in your browser: ');
     }
-    result.feedback = 'Offline, scored in your browser: ' + result.feedback;
   }
   if (serial !== roundSerial) return;   // a newer round has started; drop this stale result
   renderEvaluationResult(result);
@@ -1402,19 +1415,20 @@ requestAnimationFrame(animate);
 """
 
 
-def render_zoomies_html(console_link: bool = False) -> str:
+def render_zoomies_html(console_link: bool = False, standalone: bool = False) -> str:
     """The self-contained game page. The '← Console' link appears only when the console serves it;
     on the standalone game server or as a file there is no console to go back to."""
     from petrand.toolkit import EFF_VIVID_WORDS_256
     link = '<a class="btn btn-small" href="/">← Console</a>' if console_link else ""
     return (ZOOMIES_HTML.replace("__FORM_CARDS_JSON__", json.dumps(FORM_CARDS))
             .replace("__WORDS_JSON__", json.dumps(EFF_VIVID_WORDS_256))
-            .replace("__CONSOLE_LINK__", link))
+            .replace("__CONSOLE_LINK__", link)
+            .replace("__STANDALONE__", "true" if standalone else "false"))
 
 
 def write_standalone_html(out_path: str) -> str:
     """Writes a zero-dependency standalone HTML file that can be opened directly in any browser."""
-    html_content = render_zoomies_html()
+    html_content = render_zoomies_html(standalone=True)   # no server: rounds are scored in the page
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     return os.path.abspath(out_path)

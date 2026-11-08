@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "petrand"
-version = "1.7.0"
+version = "1.7.1"
 description = "Experimental entropy source from a bouncing cat-toy ball (research prototype, not certified), with a Monte Carlo seeder and a motion game"
 readme = "README.md"
 authors = [{ name = "Patrick Iben" }]

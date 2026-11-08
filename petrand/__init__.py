@@ -75,7 +75,7 @@ from petrand.antibot import (
     ZoomiesBotAudit,
 )
 
-__version__ = "1.7.0"
+__version__ = "1.7.1"
 __all__ = [
     "NISTHealthMonitor",
     "NISTStartupHealthTest",

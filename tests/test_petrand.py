@@ -297,7 +297,7 @@ class TestPetRand(unittest.TestCase):
             if ev:
                 engine.ingest_event(ev)
 
-        factory = MonteCarloSeedFactory(engine)
+        factory = MonteCarloSeedFactory(engine, sensor=sim)   # the sensor refills the engine for a retry
         # The test has a family-wise alpha of 0.05, so good data fails it 1 run in 20.
         # Requiring two failures in a row keeps that real check without a 5% flaky test.
         res = run_autocorrelation_test(factory, n_samples=25_000, max_lag=10)
@@ -314,7 +314,7 @@ class TestPetRand(unittest.TestCase):
             if ev:
                 engine.ingest_event(ev)
 
-        factory = MonteCarloSeedFactory(engine)
+        factory = MonteCarloSeedFactory(engine, sensor=sim)   # the sensor refills the engine for a retry
         # A statistical check: allow one retry so its false-failure rate does not make the suite flaky.
         res = run_tail_risk_benchmark(factory, n_samples=50_000, df=3.0, tail_prob=0.005)
         if not res["passed"]:
@@ -1131,6 +1131,21 @@ class TestPetRand(unittest.TestCase):
         # the game links back to the console only when the console serves it
         self.assertIn("← Console", texts["game"])
         self.assertNotIn("← Console", texts["game file"])
+
+    def test_file_copy_scores_in_the_browser(self):
+        import os, tempfile
+        from petrand.zoomies import render_zoomies_html, write_standalone_html
+        self.assertIn("const STANDALONE = false;", render_zoomies_html())
+        self.assertIn("const STANDALONE = true;", render_zoomies_html(standalone=True))
+        with tempfile.TemporaryDirectory() as d:
+            path = write_standalone_html(os.path.join(d, "game.html"))
+            with open(path, encoding="utf-8") as f:
+                html = f.read()
+        self.assertIn("const STANDALONE = true;", html)
+        self.assertNotIn("__STANDALONE__", html)
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, "zoomies_game.html"), encoding="utf-8") as f:
+            self.assertIn("const STANDALONE = true;", f.read())   # the copy in the repository is current
 
 if __name__ == "__main__":
     unittest.main()

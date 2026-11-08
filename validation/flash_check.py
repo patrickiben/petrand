@@ -23,7 +23,8 @@ will draw) with key mashing, through the unlock and the next round; a rhythmic l
 "Too rhythmic" warning (its toggles per second are counted separately); the console with "New random
 number" clicked as fast as it will take, and with Under the hood open.
 
-Run: python3 validation/flash_check.py [--self-test]   (exit 1 if any case fails; JSON lines to stdout)
+Run: python3 validation/flash_check.py [--self-test | --game-url URL]   (exit 1 if any case fails; JSON lines to stdout)
+     --game-url checks only the game, at a deployed address such as https://patrickiben.github.io/petrand/zoomies_game.html
 """
 import asyncio
 import os
@@ -284,10 +285,15 @@ def start_servers():
     return stop, dash, vj
 
 
-async def main():
-    stop, dash, vj = start_servers()
-    pages = [('console', f'http://127.0.0.1:{dash.server_address[1]}/', console_cases),
-             ('game', f'http://127.0.0.1:{vj.server_address[1]}/', game_cases)]
+async def main(game_url=None):
+    if game_url:
+        # A deployed copy of the game (for example on GitHub Pages): no local servers needed
+        stop = dash = vj = None
+        pages = [('game', game_url, game_cases)]
+    else:
+        stop, dash, vj = start_servers()
+        pages = [('console', f'http://127.0.0.1:{dash.server_address[1]}/', console_cases),
+                 ('game', f'http://127.0.0.1:{vj.server_address[1]}/', game_cases)]
     only = os.environ.get('FLASH_PAGES')   # e.g. FLASH_PAGES=game for a quicker rerun of one page
     if only:
         pages = [pg for pg in pages if pg[0] in only.split(',')]
@@ -328,9 +334,10 @@ async def main():
                             bad.append(f'{tag}: the warning appears {extra["warningShowsPerSecondWorst"]} times in a second')
                     await ctx.close()
         await b.close()
-    stop.set()
-    dash.shutdown()
-    vj.shutdown()
+    if stop is not None:
+        stop.set()
+        dash.shutdown()
+        vj.shutdown()
     if low_fps:
         print('recorded below', MIN_FPS, 'fps (a flash could hide between frames):', '; '.join(low_fps))
     print('\n'.join(bad) or 'flicker check passed')
@@ -385,4 +392,7 @@ async def self_test():
 
 
 if __name__ == '__main__':
-    sys.exit(asyncio.run(self_test() if '--self-test' in sys.argv else main()))
+    if '--self-test' in sys.argv:
+        sys.exit(asyncio.run(self_test()))
+    url = sys.argv[sys.argv.index('--game-url') + 1] if '--game-url' in sys.argv else None
+    sys.exit(asyncio.run(main(game_url=url)))

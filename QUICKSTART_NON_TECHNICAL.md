@@ -6,6 +6,8 @@ PetRand turns motion into random numbers you can use for passphrases, dice, coin
 
 ## 1. Fastest start: the Zoomies! game
 
+Play it online at https://patrickiben.github.io/petrand/, or offline:
+
 1. Open the `petrand` folder.
 2. Double-click `zoomies_game.html`. It opens in Safari, Chrome, Firefox or Edge, with no installation.
 3. Press **GO!** and move your mouse, trackpad or finger wildly for 4 seconds: spirals, zig-zags, sudden stops. On a phone, tap **Phone motion** first and move the phone around.

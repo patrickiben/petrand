@@ -197,6 +197,7 @@
 
 <script>
 const FORM_CARDS = [{"id": "spiral_whisk", "form_number": "MODE 01", "form_title": "SPIRAL WHISK", "verb": "WHISK!", "host": "CURVATURE CHANNEL", "narrator_intro": "Stir in fast, jagged spirals across the playfield.", "micro_action": "JAGGED SPIRALS", "target_bonus": "curvature", "badge": "\ud83c\udf00", "accent": "#f97316"}, {"id": "scatter_snap", "form_number": "MODE 02", "form_title": "SCATTER SNAP", "verb": "FLAIL!", "host": "JERK CHANNEL", "narrator_intro": "Whip sharply across all 8 compass directions.", "micro_action": "8-WAY SNAP", "target_bonus": "jerk", "badge": "\u26a1", "accent": "#ef4444"}, {"id": "vortex_orbit", "form_number": "MODE 03", "form_title": "VORTEX ORBIT", "verb": "SWIRL!", "host": "SPECTRAL CHANNEL", "narrator_intro": "Orbit the ring, then abruptly shatter the loop.", "micro_action": "ORBIT & SHATTER", "target_bonus": "spectral", "badge": "\ud83c\udfaf", "accent": "#a855f7"}, {"id": "wide_pendulum", "form_number": "MODE 04", "form_title": "WIDE PENDULUM", "verb": "SWEEP!", "host": "JERK CHANNEL", "narrator_intro": "Sweep in wide arcs with sudden reversals.", "micro_action": "ARC & REVERSE", "target_bonus": "jerk", "badge": "\u3030\ufe0f", "accent": "#38bdf8"}, {"id": "staccato_burst", "form_number": "MODE 05", "form_title": "STACCATO BURST", "verb": "STAMP!", "host": "SPECTRAL CHANNEL", "narrator_intro": "Dart in rapid staccato bursts and sharp stops.", "micro_action": "RAPID STOPS", "target_bonus": "spectral", "badge": "\ud83d\udca5", "accent": "#eab308"}, {"id": "zigzag_cut", "form_number": "MODE 06", "form_title": "ZIGZAG CUT", "verb": "SLASH!", "host": "CURVATURE CHANNEL", "narrator_intro": "Slice sharp diagonal corners across the frame.", "micro_action": "SHARP CORNERS", "target_bonus": "curvature", "badge": "\ud83d\udcd0", "accent": "#ec4899"}, {"id": "seismic_shake", "form_number": "MODE 07", "form_title": "SEISMIC SHAKE", "verb": "QUAKE!", "host": "ACOUSTIC CHANNEL", "narrator_intro": "Jolt erratically while tapping random keys.", "micro_action": "ERRATIC JOLTS", "target_bonus": "acoustic", "badge": "\ud83c\udf0b", "accent": "#10b981"}, {"id": "fractal_scribble", "form_number": "MODE 08", "form_title": "FRACTAL SCRIBBLE", "verb": "SCRIBBLE!", "host": "CURVATURE CHANNEL", "narrator_intro": "Scribble unpredictable loops and tight turns.", "micro_action": "CHAOTIC SCRIBBLE", "target_bonus": "curvature", "badge": "\u270f\ufe0f", "accent": "#6366f1"}];
+const STANDALONE = true;   // true in the file copy: rounds are scored in the page
 const WORDS_256 = ["acorn", "agate", "almond", "alpine", "amber", "anchor", "anvil", "apricot", "arcade", "archer", "arctic", "armor", "arrow", "aspen", "atlas", "aurora", "autumn", "avalon", "badger", "basil", "bamboo", "banjo", "banyan", "barley", "basalt", "beacon", "beaver", "belfry", "bison", "blizzard", "blossom", "bobcat", "bonfire", "bonsai", "boulder", "boxcar", "bramble", "breeze", "bridge", "bronze", "brook", "buckle", "cabana", "cactus", "camera", "candle", "canopy", "canyon", "caravan", "carbon", "carpet", "cascade", "castle", "cedar", "celeste", "chalet", "chariot", "cherry", "chestnut", "chimney", "cipher", "citadel", "citrus", "cliff", "clover", "cobalt", "comet", "compass", "condor", "copper", "coral", "cosmos", "cotton", "cougar", "crater", "crimson", "crystal", "cypress", "dagger", "dahlia", "dolphin", "domino", "dragon", "drift", "dynamo", "eclipse", "elm", "emerald", "ember", "empire", "enigma", "equinox", "estuary", "falcon", "fathom", "feather", "fennel", "ferry", "fiddle", "fiesta", "fjord", "flannel", "flint", "forest", "fossil", "fountain", "fresco", "galaxy", "galleon", "garden", "garnet", "gazebo", "geyser", "glacier", "glider", "gondola", "granite", "grotto", "guitar", "harbor", "harvest", "aviary", "hazel", "heather", "helmet", "heron", "hickory", "horizon", "hornet", "iceberg", "igloo", "indigo", "island", "ivory", "jacket", "jade", "jaguar", "jasmine", "jasper", "javelin", "jester", "jubilee", "jungle", "juniper", "kayak", "kestrel", "kettle", "kimono", "kingdom", "lantern", "lapel", "larch", "lagoon", "laurel", "lava", "legend", "lemon", "leopard", "liberty", "lilac", "linen", "locket", "lotus", "magnet", "magpie", "mallet", "mammoth", "mango", "mantis", "maple", "marble", "mariner", "meadow", "melody", "mercury", "meteor", "mirage", "monarch", "monsoon", "mosaic", "muffin", "mustang", "nebula", "nectar", "nickel", "nimbus", "nomad", "nutmeg", "oasis", "obsidian", "ocelot", "octave", "odyssey", "olive", "onyx", "opal", "orange", "allium", "orchid", "oriole", "osprey", "otter", "pagoda", "palace", "panther", "papaya", "paradox", "parlor", "pebble", "pelican", "pendulum", "peony", "pepper", "phantom", "phoenix", "picnic", "pioneer", "planet", "plaza", "plum", "pocket", "polaris", "poncho", "poplar", "prairie", "prism", "pulsar", "pumpkin", "pyramid", "quartz", "quiver", "ranger", "radar", "radish", "walnut", "raven", "redwood", "reef", "ribbon", "ripple", "river", "robin", "rocket", "rosewood", "ruby", "saffron", "sahara", "salmon", "sandal", "sapphire", "saturn", "savanna", "scarlet", "scepter", "sequoia", "shadow"];   // the console's passphrase words (8 bits each)
 
 let currentCardIdx = 0;
@@ -617,6 +618,30 @@ function makeByteReader(bytes) {
   };
 }
 
+// Score a round in the page and, if it unlocks, make its seed from a SHA-256 of everything recorded
+async function scoreInBrowser(roundSamples, card, area, prefix) {
+  let result = null;
+  result = evaluateClientSide(roundSamples, card, area);
+  if (result.unlocked) {
+    const rawBuf = new Float64Array(roundSamples.flatMap(s => [s.t, s.x, s.y, s.z || 0, s.audio || 0]));
+    const h1 = new Uint8Array(await crypto.subtle.digest('SHA-256', rawBuf.buffer));
+    const h2 = new Uint8Array(await crypto.subtle.digest('SHA-256', h1));
+    const bytes = new Uint8Array([...h1, ...h2]);
+    result.seed_hex = Array.from(h1).map(b => b.toString(16).padStart(2, '0')).join('');
+    result.seed_label = `Seed #${String(h1[0] | (h1[1] << 8)).padStart(4, '0')}`;
+    const rd = makeByteReader(bytes.slice(2));
+    result.derived_rolls = {
+      uniform_0_1: ((h1[0] * 256 + h1[1]) / 65536).toFixed(8),
+      d20: rd.pick(20) + 1,
+      '6d6': [0, 1, 2, 3, 4, 5].map(() => rd.pick(6) + 1)
+    };
+    const words = [0, 1, 2, 3, 4, 5].map(() => WORDS_256[rd.pick(256)]);
+    result.toolkit = { passphrase_bundle: { passphrase: words.join('-'), pin_6_digit: rd.pin6() } };
+  }
+  result.feedback = prefix + result.feedback;
+  return result;
+}
+
 async function finalizeRound() {
   isJumping = false;
   document.getElementById('btnStartJump').textContent = 'GO! (4 s)';
@@ -634,33 +659,21 @@ async function finalizeRound() {
   }
 
   let result = null;
-  try {
-    const resp = await fetch('/api/v1/zoomies/evaluate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ form_id: card.id, samples: roundSamples, key_mashes: keyMashCount, area: area })
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    result = await resp.json();
-  } catch (err) {
-    result = evaluateClientSide(roundSamples, card, area);
-    if (result.unlocked) {
-      const rawBuf = new Float64Array(roundSamples.flatMap(s => [s.t, s.x, s.y, s.z || 0, s.audio || 0]));
-      const h1 = new Uint8Array(await crypto.subtle.digest('SHA-256', rawBuf.buffer));
-      const h2 = new Uint8Array(await crypto.subtle.digest('SHA-256', h1));
-      const bytes = new Uint8Array([...h1, ...h2]);
-      result.seed_hex = Array.from(h1).map(b => b.toString(16).padStart(2, '0')).join('');
-      result.seed_label = `Seed #${String(h1[0] | (h1[1] << 8)).padStart(4, '0')}`;
-      const rd = makeByteReader(bytes.slice(2));
-      result.derived_rolls = {
-        uniform_0_1: ((h1[0] * 256 + h1[1]) / 65536).toFixed(8),
-        d20: rd.pick(20) + 1,
-        '6d6': [0, 1, 2, 3, 4, 5].map(() => rd.pick(6) + 1)
-      };
-      const words = [0, 1, 2, 3, 4, 5].map(() => WORDS_256[rd.pick(256)]);
-      result.toolkit = { passphrase_bundle: { passphrase: words.join('-'), pin_6_digit: rd.pin6() } };
+  if (STANDALONE) {
+    // The page was opened as a file or from a static host: there is no PetRand server to ask
+    result = await scoreInBrowser(roundSamples, card, area, 'Scored in your browser: ');
+  } else {
+    try {
+      const resp = await fetch('/api/v1/zoomies/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form_id: card.id, samples: roundSamples, key_mashes: keyMashCount, area: area })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      result = await resp.json();
+    } catch (err) {
+      result = await scoreInBrowser(roundSamples, card, area, 'Offline, scored in your browser: ');
     }
-    result.feedback = 'Offline, scored in your browser: ' + result.feedback;
   }
   if (serial !== roundSerial) return;   // a newer round has started; drop this stale result
   renderEvaluationResult(result);
